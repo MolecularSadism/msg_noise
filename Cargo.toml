@@ -1,0 +1,24 @@
+[package]
+name = "msg_noise"
+version = "0.1.0"
+edition = "2024"
+authors = ["ffmulks <63452434+ffmulks@users.noreply.github.com>"]
+description = "Seeded noise generation for Bevy games"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MolecularSadism/msg_noise"
+keywords = ["bevy", "noise", "perlin", "gamedev", "procedural"]
+categories = ["game-development"]
+
+[dependencies]
+bevy = { version = "0.16", default-features = false }
+noise = "0.9"
+msg_rng = { git = "https://github.com/MolecularSadism/msg_rng", tag = "v0.1.0" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    "cfg(bevy_lint)",
+] }
+
+[lints.clippy]
+too_many_arguments = "allow"
+type_complexity = "allow"
