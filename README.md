@@ -2,6 +2,8 @@
 
 Seeded noise generation for Bevy games.
 
+**Compatible with Bevy 0.17**
+
 ## Features
 
 - **Seeded noise**: Reproducible Perlin noise generation
@@ -15,8 +17,8 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-msg_noise = { git = "https://github.com/MolecularSadism/msg_noise", tag = "v0.1.0" }
-msg_rng = { git = "https://github.com/MolecularSadism/msg_rng", tag = "v0.1.0" }
+msg_noise = { git = "https://github.com/MolecularSadism/msg_noise", tag = "v0.2.0" }
+msg_rng = { git = "https://github.com/MolecularSadism/msg_rng", tag = "v0.2.0" }
 ```
 
 ## Quick Start
