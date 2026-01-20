@@ -2,8 +2,6 @@
 
 Seeded noise generation for Bevy games.
 
-**Compatible with Bevy 0.17**
-
 ## Features
 
 - **Seeded noise**: Reproducible Perlin noise generation
@@ -91,6 +89,13 @@ let value_3d = noise.get_normalized_3d(x, y, z);
 let fractal = noise.get_fractal(x, y, octaves, persistence, lacunarity);
 let fractal_scaled = noise.get_fractal_scaled(x, y, 4, 0.5, 2.0);
 ```
+
+## Bevy Version Compatibility
+
+| `msg_noise` | Bevy |
+|-------------|------|
+| 0.2         | 0.17 |
+| 0.1         | 0.16 |
 
 ## License
 
