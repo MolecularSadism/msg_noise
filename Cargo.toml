@@ -10,9 +10,9 @@ keywords = ["bevy", "noise", "perlin", "gamedev", "procedural"]
 categories = ["game-development"]
 
 [dependencies]
-bevy = { version = "0.16", default-features = false }
+bevy = { version = "0.17", default-features = false }
 noise = "0.9"
-msg_rng = { git = "https://github.com/MolecularSadism/msg_rng", tag = "v0.1.0" }
+msg_rng = { git = "https://github.com/MolecularSadism/msg_rng" }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
