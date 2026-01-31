@@ -1,5 +1,10 @@
 # msg_noise
 
+[![CI](https://github.com/MolecularSadism/msg_noise/workflows/CI/badge.svg)](https://github.com/MolecularSadism/msg_noise/actions)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/MolecularSadism/msg_noise#license)
+[![Bevy](https://img.shields.io/badge/Bevy-0.18-blue.svg)](https://bevyengine.org/)
+[![Rust](https://img.shields.io/badge/rust-2024%20edition-orange.svg)](https://www.rust-lang.org/)
+
 Seeded noise generation for Bevy games.
 
 ## Features
@@ -15,8 +20,8 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-msg_noise = { git = "https://github.com/MolecularSadism/msg_noise", tag = "v0.2.0" }
-msg_rng = { git = "https://github.com/MolecularSadism/msg_rng", tag = "v0.2.0" }
+msg_noise = { git = "https://github.com/MolecularSadism/msg_noise", tag = "v0.3.0" }
+msg_rng = { git = "https://github.com/MolecularSadism/msg_rng", tag = "v0.3.0" }
 ```
 
 ## Quick Start
@@ -94,6 +99,7 @@ let fractal_scaled = noise.get_fractal_scaled(x, y, 4, 0.5, 2.0);
 
 | `msg_noise` | Bevy |
 |-------------|------|
+| 0.3         | 0.18 |
 | 0.2         | 0.17 |
 | 0.1         | 0.16 |
 
