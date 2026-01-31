@@ -376,10 +376,10 @@ mod tests {
         let noise2 = source2.create(0xABCD);
 
         let values1: Vec<f64> = (0..10)
-            .map(|i| noise1.get_normalized(i as f64, 0.0))
+            .map(|i| noise1.get_normalized(f64::from(i), 0.0))
             .collect();
         let values2: Vec<f64> = (0..10)
-            .map(|i| noise2.get_normalized(i as f64, 0.0))
+            .map(|i| noise2.get_normalized(f64::from(i), 0.0))
             .collect();
 
         assert_eq!(values1, values2);
@@ -394,10 +394,10 @@ mod tests {
         let noise2 = source2.create(0xABCD);
 
         let values1: Vec<f64> = (0..10)
-            .map(|i| noise1.get_normalized(i as f64, 0.0))
+            .map(|i| noise1.get_normalized(f64::from(i), 0.0))
             .collect();
         let values2: Vec<f64> = (0..10)
-            .map(|i| noise2.get_normalized(i as f64, 0.0))
+            .map(|i| noise2.get_normalized(f64::from(i), 0.0))
             .collect();
 
         assert_ne!(values1, values2);
@@ -411,10 +411,10 @@ mod tests {
         let noise2 = source.create(0x0002);
 
         let values1: Vec<f64> = (0..10)
-            .map(|i| noise1.get_normalized(i as f64, 0.0))
+            .map(|i| noise1.get_normalized(f64::from(i), 0.0))
             .collect();
         let values2: Vec<f64> = (0..10)
-            .map(|i| noise2.get_normalized(i as f64, 0.0))
+            .map(|i| noise2.get_normalized(f64::from(i), 0.0))
             .collect();
 
         assert_ne!(values1, values2);
@@ -425,13 +425,13 @@ mod tests {
         let mut source = NoiseSource::new(12345);
         let noise1 = source.create(0xABCD);
         let values1: Vec<f64> = (0..5)
-            .map(|i| noise1.get_normalized(i as f64, 0.0))
+            .map(|i| noise1.get_normalized(f64::from(i), 0.0))
             .collect();
 
         source.reseed(54321);
         let noise2 = source.create(0xABCD);
         let values2: Vec<f64> = (0..5)
-            .map(|i| noise2.get_normalized(i as f64, 0.0))
+            .map(|i| noise2.get_normalized(f64::from(i), 0.0))
             .collect();
 
         assert_ne!(values1, values2);
@@ -444,13 +444,10 @@ mod tests {
 
         for x in -100..100 {
             for y in -100..100 {
-                let value = noise.get_normalized(x as f64, y as f64);
+                let value = noise.get_normalized(f64::from(x), f64::from(y));
                 assert!(
                     (0.0..=1.0).contains(&value),
-                    "Value {} out of range at ({}, {})",
-                    value,
-                    x,
-                    y
+                    "Value {value} out of range at ({x}, {y})"
                 );
             }
         }
