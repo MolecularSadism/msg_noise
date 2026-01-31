@@ -1,4 +1,4 @@
-//! Integration tests for msg_noise with Bevy 0.18
+//! Integration tests for `msg_noise` with Bevy 0.18
 
 use bevy::prelude::*;
 use msg_noise::prelude::*;
@@ -42,12 +42,12 @@ fn noise_source_factory_creates_deterministic_noise() {
 
     // Same key should produce same noise values
     for i in 0..10 {
-        let x = i as f64;
-        assert_eq!(
-            noise1.get_normalized(x, 0.0),
-            noise2.get_normalized(x, 0.0),
-            "Values should match at x={}",
-            x
+        let x = f64::from(i);
+        let val1 = noise1.get_normalized(x, 0.0);
+        let val2 = noise2.get_normalized(x, 0.0);
+        assert!(
+            (val1 - val2).abs() < f64::EPSILON,
+            "Values should match at x={x}"
         );
     }
 }
@@ -61,8 +61,10 @@ fn noise_source_different_keys_produce_different_noise() {
 
     let mut different_count = 0;
     for i in 0..10 {
-        let x = i as f64;
-        if noise1.get_normalized(x, 0.0) != noise2.get_normalized(x, 0.0) {
+        let x = f64::from(i);
+        let val1 = noise1.get_normalized(x, 0.0);
+        let val2 = noise2.get_normalized(x, 0.0);
+        if (val1 - val2).abs() > f64::EPSILON {
             different_count += 1;
         }
     }
@@ -70,8 +72,7 @@ fn noise_source_different_keys_produce_different_noise() {
     // Different keys should produce different values
     assert!(
         different_count > 8,
-        "Expected most values to differ, but only {} out of 10 were different",
-        different_count
+        "Expected most values to differ, but only {different_count} out of 10 were different"
     );
 }
 
@@ -84,8 +85,10 @@ fn noise_source_salted_creates_unique_layers() {
 
     let mut different_count = 0;
     for i in 0..10 {
-        let x = i as f64;
-        if layer1.get_normalized(x, 0.0) != layer2.get_normalized(x, 0.0) {
+        let x = f64::from(i);
+        let val1 = layer1.get_normalized(x, 0.0);
+        let val2 = layer2.get_normalized(x, 0.0);
+        if (val1 - val2).abs() > f64::EPSILON {
             different_count += 1;
         }
     }
@@ -105,7 +108,7 @@ fn noise_determinism_across_apps() {
     let source1 = app1.world().get_resource::<NoiseSource>().unwrap();
     let noise1 = source1.create(0xABCD);
     let values1: Vec<f64> = (0..10)
-        .map(|i| noise1.get_normalized(i as f64, 0.0))
+        .map(|i| noise1.get_normalized(f64::from(i), 0.0))
         .collect();
 
     // Second app run with same seed
@@ -114,7 +117,7 @@ fn noise_determinism_across_apps() {
     let source2 = app2.world().get_resource::<NoiseSource>().unwrap();
     let noise2 = source2.create(0xABCD);
     let values2: Vec<f64> = (0..10)
-        .map(|i| noise2.get_normalized(i as f64, 0.0))
+        .map(|i| noise2.get_normalized(f64::from(i), 0.0))
         .collect();
 
     assert_eq!(
@@ -129,14 +132,11 @@ fn noise_raw_values_in_expected_range() {
 
     for x in -50..50 {
         for y in -50..50 {
-            let value = noise.get_raw(x as f64, y as f64);
+            let value = noise.get_raw(f64::from(x), f64::from(y));
             // Perlin noise is typically between -1 and 1, but can exceed slightly
             assert!(
                 (-2.0..=2.0).contains(&value),
-                "Raw value {} out of reasonable range at ({}, {})",
-                value,
-                x,
-                y
+                "Raw value {value} out of reasonable range at ({x}, {y})"
             );
         }
     }
@@ -148,13 +148,10 @@ fn noise_normalized_values_in_range() {
 
     for x in -50..50 {
         for y in -50..50 {
-            let value = noise.get_normalized(x as f64, y as f64);
+            let value = noise.get_normalized(f64::from(x), f64::from(y));
             assert!(
                 (0.0..=1.0).contains(&value),
-                "Normalized value {} out of range at ({}, {})",
-                value,
-                x,
-                y
+                "Normalized value {value} out of range at ({x}, {y})"
             );
         }
     }
@@ -166,13 +163,10 @@ fn noise_absolute_values_in_range() {
 
     for x in -50..50 {
         for y in -50..50 {
-            let value = noise.get_absolute(x as f64, y as f64);
+            let value = noise.get_absolute(f64::from(x), f64::from(y));
             assert!(
                 (0.0..=2.0).contains(&value),
-                "Absolute value {} out of range at ({}, {})",
-                value,
-                x,
-                y
+                "Absolute value {value} out of range at ({x}, {y})"
             );
         }
     }
@@ -185,14 +179,10 @@ fn noise_3d_normalized_values_in_range() {
     for x in -20..20 {
         for y in -20..20 {
             for z in -20..20 {
-                let value = noise.get_normalized_3d(x as f64, y as f64, z as f64);
+                let value = noise.get_normalized_3d(f64::from(x), f64::from(y), f64::from(z));
                 assert!(
                     (0.0..=1.0).contains(&value),
-                    "3D normalized value {} out of range at ({}, {}, {})",
-                    value,
-                    x,
-                    y,
-                    z
+                    "3D normalized value {value} out of range at ({x}, {y}, {z})"
                 );
             }
         }
@@ -211,9 +201,7 @@ fn noise_scale_affects_frequency() {
     // Higher scale = higher frequency = larger differences between nearby points
     assert!(
         rough_diff > smooth_diff,
-        "Rough noise (scale=0.1) diff {} should be > smooth noise (scale=0.001) diff {}",
-        rough_diff,
-        smooth_diff
+        "Rough noise (scale=0.1) diff {rough_diff} should be > smooth noise (scale=0.001) diff {smooth_diff}"
     );
 }
 
@@ -229,8 +217,7 @@ fn noise_range_configuration() {
     let scaled = noise.get_fractal_scaled(10.0, 20.0, 4, 0.5, 2.0);
     assert!(
         (100.0..=200.0).contains(&scaled),
-        "Scaled value {} should be in configured range [100, 200]",
-        scaled
+        "Scaled value {scaled} should be in configured range [100, 200]"
     );
 }
 
@@ -242,26 +229,25 @@ fn noise_offset_affects_coordinates() {
     // Check multiple points to ensure offset has an effect
     let mut different_count = 0;
     for i in 0..10 {
-        let x = i as f64;
+        let x = f64::from(i);
         let value1 = noise1.get_normalized(x, 0.0);
         let value2 = noise2.get_normalized(x, 0.0);
 
-        if value1 != value2 {
+        if (value1 - value2).abs() > f64::EPSILON {
             different_count += 1;
         }
     }
 
     assert!(
         different_count > 8,
-        "Offset should change most noise values, but only {} out of 10 differed",
-        different_count
+        "Offset should change most noise values, but only {different_count} out of 10 differed"
     );
 
     // Verify offset shifts the noise field correctly
     let value_at_origin_with_offset = noise2.get_normalized(0.0, 0.0);
     let value_at_offset_without_offset = noise1.get_normalized(1000.0, 1000.0);
-    assert_eq!(
-        value_at_origin_with_offset, value_at_offset_without_offset,
+    assert!(
+        (value_at_origin_with_offset - value_at_offset_without_offset).abs() < f64::EPSILON,
         "Offset should shift the noise field"
     );
 }
@@ -275,8 +261,7 @@ fn fractal_noise_produces_valid_values() {
     // Fractal should be in roughly -1 to 1 range (unnormalized)
     assert!(
         (-2.0..=2.0).contains(&fractal),
-        "Fractal value {} out of reasonable range",
-        fractal
+        "Fractal value {fractal} out of reasonable range"
     );
 }
 
@@ -285,13 +270,11 @@ fn fractal_scaled_respects_range() {
     let noise = Noise::new(42).with_range(50.0, 150.0);
 
     for i in 0..20 {
-        let x = i as f64;
+        let x = f64::from(i);
         let value = noise.get_fractal_scaled(x, 0.0, 4, 0.5, 2.0);
         assert!(
             (50.0..=150.0).contains(&value),
-            "Fractal scaled value {} out of configured range at x={}",
-            value,
-            x
+            "Fractal scaled value {value} out of configured range at x={x}"
         );
     }
 }
@@ -316,13 +299,13 @@ fn noise_reseed_changes_output() {
     let mut source = NoiseSource::new(12345);
     let noise1 = source.create(0xABCD);
     let values1: Vec<f64> = (0..10)
-        .map(|i| noise1.get_normalized(i as f64, 0.0))
+        .map(|i| noise1.get_normalized(f64::from(i), 0.0))
         .collect();
 
     source.reseed(54321);
     let noise2 = source.create(0xABCD);
     let values2: Vec<f64> = (0..10)
-        .map(|i| noise2.get_normalized(i as f64, 0.0))
+        .map(|i| noise2.get_normalized(f64::from(i), 0.0))
         .collect();
 
     assert_ne!(values1, values2, "Reseeding should change noise values");
@@ -344,6 +327,20 @@ fn noise_mutable_setters_work() {
     );
 }
 
+// Helper function for the test below (defined at module level to avoid clippy::items_after_statements)
+fn test_system(noise_source: Res<NoiseSource>) {
+    let terrain = noise_source.create(0x5445_5252);
+    let caves = noise_source.create(0x4341_5645);
+
+    // Generate some terrain height values
+    let height = terrain.get_fractal_scaled(100.0, 200.0, 4, 0.5, 2.0);
+    assert!((0.0..=1.0).contains(&height));
+
+    // Generate cave density
+    let cave_density = caves.get_normalized(100.0, 200.0);
+    assert!((0.0..=1.0).contains(&cave_density));
+}
+
 #[test]
 fn bevy_app_integration_full_workflow() {
     let mut app = App::new();
@@ -353,19 +350,6 @@ fn bevy_app_integration_full_workflow() {
     app.add_plugins(NoisePlugin::from_global_rng());
 
     // Add a system that uses noise
-    fn test_system(noise_source: Res<NoiseSource>) {
-        let terrain = noise_source.create(0x5445_5252);
-        let caves = noise_source.create(0x4341_5645);
-
-        // Generate some terrain height values
-        let height = terrain.get_fractal_scaled(100.0, 200.0, 4, 0.5, 2.0);
-        assert!((0.0..=1.0).contains(&height));
-
-        // Generate cave density
-        let cave_density = caves.get_normalized(100.0, 200.0);
-        assert!((0.0..=1.0).contains(&cave_density));
-    }
-
     app.add_systems(Update, test_system);
 
     // Run a few updates to ensure systems work
