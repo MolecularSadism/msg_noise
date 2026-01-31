@@ -93,7 +93,11 @@ impl Plugin for NoisePlugin {
 }
 
 fn init_from_global_rng(mut commands: Commands, rng: Res<GlobalRng>) {
-    commands.insert_resource(NoiseSource::new(rng.seed() as u32));
+    // Use lower 32 bits of u64 seed for u32-based Perlin noise
+    let seed = (rng.seed() & u64::from(u32::MAX))
+        .try_into()
+        .expect("Bitmasked value should always fit in u32");
+    commands.insert_resource(NoiseSource::new(seed));
 }
 
 /// Global noise source resource.
