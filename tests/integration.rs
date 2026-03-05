@@ -376,3 +376,110 @@ fn noise_reflection_registered() {
         "NoiseSource should be registered for reflection"
     );
 }
+
+// --- Tests for GlobalRng initialization path ---
+
+#[test]
+fn from_global_rng_resource_available_in_startup() {
+    // NoiseSource is inserted via Commands in PreStartup,
+    // so it should be available in Startup systems.
+    let mut app = App::new();
+    app.add_plugins(RngPlugin::seeded(42));
+    app.add_plugins(NoisePlugin::from_global_rng());
+
+    let startup_ran = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let flag = startup_ran.clone();
+
+    app.add_systems(Startup, move |noise: Res<NoiseSource>| {
+        // Verify the resource exists and has a valid seed
+        assert!(noise.seed() > 0, "Seed should be derived from GlobalRng");
+        flag.store(true, std::sync::atomic::Ordering::SeqCst);
+    });
+
+    app.update();
+
+    assert!(
+        startup_ran.load(std::sync::atomic::Ordering::SeqCst),
+        "Startup system should have run with NoiseSource available"
+    );
+}
+
+#[test]
+fn from_global_rng_deterministic_across_runs() {
+    // Two apps with the same GlobalRng seed should produce identical NoiseSource seeds
+    let mut app1 = App::new();
+    app1.add_plugins(RngPlugin::seeded(777));
+    app1.add_plugins(NoisePlugin::from_global_rng());
+    app1.update();
+
+    let mut app2 = App::new();
+    app2.add_plugins(RngPlugin::seeded(777));
+    app2.add_plugins(NoisePlugin::from_global_rng());
+    app2.update();
+
+    let seed1 = app1.world().resource::<NoiseSource>().seed();
+    let seed2 = app2.world().resource::<NoiseSource>().seed();
+
+    assert_eq!(
+        seed1, seed2,
+        "Same GlobalRng seed should produce same NoiseSource seed"
+    );
+}
+
+#[test]
+fn from_global_rng_noise_values_match_seeded_equivalent() {
+    // Create an app with GlobalRng, extract the derived seed,
+    // then verify a seeded app with the same seed produces identical noise.
+    let mut app_rng = App::new();
+    app_rng.add_plugins(RngPlugin::seeded(42));
+    app_rng.add_plugins(NoisePlugin::from_global_rng());
+    app_rng.update();
+
+    let derived_seed = app_rng.world().resource::<NoiseSource>().seed();
+
+    let mut app_seeded = App::new();
+    app_seeded.add_plugins(NoisePlugin::seeded(derived_seed));
+
+    let noise_rng = app_rng.world().resource::<NoiseSource>().create(0xBEEF);
+    let noise_seeded = app_seeded
+        .world()
+        .resource::<NoiseSource>()
+        .create(0xBEEF);
+
+    for i in 0..20 {
+        let x = f64::from(i);
+        let v1 = noise_rng.get_normalized(x, 0.0);
+        let v2 = noise_seeded.get_normalized(x, 0.0);
+        assert!(
+            (v1 - v2).abs() < f64::EPSILON,
+            "Noise values should match at x={x}: {v1} vs {v2}"
+        );
+    }
+}
+
+#[test]
+fn seeded_plugin_resource_available_immediately() {
+    // With NoisePlugin::seeded(), the resource should exist before any update
+    let mut app = App::new();
+    app.add_plugins(NoisePlugin::seeded(99));
+
+    assert!(
+        app.world().get_resource::<NoiseSource>().is_some(),
+        "Seeded NoiseSource should be available immediately (no update needed)"
+    );
+    assert_eq!(app.world().resource::<NoiseSource>().seed(), 99);
+}
+
+#[test]
+fn from_global_rng_resource_available_immediately() {
+    // NoiseSource is inserted in build() by reading GlobalRng directly,
+    // so it should exist before any update.
+    let mut app = App::new();
+    app.add_plugins(RngPlugin::seeded(42));
+    app.add_plugins(NoisePlugin::from_global_rng());
+
+    assert!(
+        app.world().get_resource::<NoiseSource>().is_some(),
+        "NoiseSource should exist immediately when using from_global_rng()"
+    );
+}
