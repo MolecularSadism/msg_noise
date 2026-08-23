@@ -2,7 +2,8 @@
 
 use bevy::prelude::*;
 use msg_noise::prelude::*;
-use msg_rng::prelude::*;
+use bevy_prng::WyRand;
+use bevy_rand::prelude::EntropyPlugin;
 
 #[test]
 fn plugin_initialization_with_explicit_seed() {
@@ -19,18 +20,23 @@ fn plugin_initialization_with_explicit_seed() {
 #[test]
 fn plugin_initialization_from_global_rng() {
     let mut app = App::new();
-    app.add_plugins(RngPlugin::seeded(42));
+    app.add_plugins(EntropyPlugin::<WyRand>::with_seed(42u64.to_le_bytes()));
     app.add_plugins(NoisePlugin::from_global_rng());
 
     // Force PreStartup systems to run
     app.update();
 
-    // Plugin should derive seed from GlobalRng
+    // Plugin should derive seed from the global entropy source
     assert!(app.world().get_resource::<NoiseSource>().is_some());
 
-    let noise_source = app.world().get_resource::<NoiseSource>().unwrap();
-    // Seed should be derived from GlobalRng (42)
-    assert_eq!(noise_source.seed(), 42);
+    // The derived seed is a fold of the global source's seed, so it is stable
+    // for a given global seed rather than equal to it.
+    let derived = app.world().resource::<NoiseSource>().seed();
+
+    let mut same = App::new();
+    same.add_plugins(EntropyPlugin::<WyRand>::with_seed(42u64.to_le_bytes()));
+    same.add_plugins(NoisePlugin::from_global_rng());
+    assert_eq!(derived, same.world().resource::<NoiseSource>().seed());
 }
 
 #[test]
@@ -346,7 +352,7 @@ fn bevy_app_integration_full_workflow() {
     let mut app = App::new();
 
     // Add RNG and Noise plugins
-    app.add_plugins(RngPlugin::seeded(777));
+    app.add_plugins(EntropyPlugin::<WyRand>::with_seed(777u64.to_le_bytes()));
     app.add_plugins(NoisePlugin::from_global_rng());
 
     // Add a system that uses noise
@@ -377,14 +383,14 @@ fn noise_reflection_registered() {
     );
 }
 
-// --- Tests for GlobalRng initialization path ---
+// --- Tests for the global-entropy initialization path ---
 
 #[test]
 fn from_global_rng_resource_available_in_startup() {
     // NoiseSource is inserted via Commands in PreStartup,
     // so it should be available in Startup systems.
     let mut app = App::new();
-    app.add_plugins(RngPlugin::seeded(42));
+    app.add_plugins(EntropyPlugin::<WyRand>::with_seed(42u64.to_le_bytes()));
     app.add_plugins(NoisePlugin::from_global_rng());
 
     let startup_ran = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -392,7 +398,7 @@ fn from_global_rng_resource_available_in_startup() {
 
     app.add_systems(Startup, move |noise: Res<NoiseSource>| {
         // Verify the resource exists and has a valid seed
-        assert!(noise.seed() > 0, "Seed should be derived from GlobalRng");
+        assert!(noise.seed() > 0, "Seed should be derived from the global entropy source");
         flag.store(true, std::sync::atomic::Ordering::SeqCst);
     });
 
@@ -406,14 +412,14 @@ fn from_global_rng_resource_available_in_startup() {
 
 #[test]
 fn from_global_rng_deterministic_across_runs() {
-    // Two apps with the same GlobalRng seed should produce identical NoiseSource seeds
+    // Two apps with the same global seed should produce identical NoiseSource seeds
     let mut app1 = App::new();
-    app1.add_plugins(RngPlugin::seeded(777));
+    app1.add_plugins(EntropyPlugin::<WyRand>::with_seed(777u64.to_le_bytes()));
     app1.add_plugins(NoisePlugin::from_global_rng());
     app1.update();
 
     let mut app2 = App::new();
-    app2.add_plugins(RngPlugin::seeded(777));
+    app2.add_plugins(EntropyPlugin::<WyRand>::with_seed(777u64.to_le_bytes()));
     app2.add_plugins(NoisePlugin::from_global_rng());
     app2.update();
 
@@ -422,16 +428,16 @@ fn from_global_rng_deterministic_across_runs() {
 
     assert_eq!(
         seed1, seed2,
-        "Same GlobalRng seed should produce same NoiseSource seed"
+        "Same global seed should produce same NoiseSource seed"
     );
 }
 
 #[test]
 fn from_global_rng_noise_values_match_seeded_equivalent() {
-    // Create an app with GlobalRng, extract the derived seed,
+    // Create an app with a global entropy source, extract the derived seed,
     // then verify a seeded app with the same seed produces identical noise.
     let mut app_rng = App::new();
-    app_rng.add_plugins(RngPlugin::seeded(42));
+    app_rng.add_plugins(EntropyPlugin::<WyRand>::with_seed(42u64.to_le_bytes()));
     app_rng.add_plugins(NoisePlugin::from_global_rng());
     app_rng.update();
 
@@ -472,10 +478,10 @@ fn seeded_plugin_resource_available_immediately() {
 
 #[test]
 fn from_global_rng_resource_available_immediately() {
-    // NoiseSource is inserted in build() by reading GlobalRng directly,
+    // NoiseSource is inserted in build() by reading the global seed directly,
     // so it should exist before any update.
     let mut app = App::new();
-    app.add_plugins(RngPlugin::seeded(42));
+    app.add_plugins(EntropyPlugin::<WyRand>::with_seed(42u64.to_le_bytes()));
     app.add_plugins(NoisePlugin::from_global_rng());
 
     assert!(

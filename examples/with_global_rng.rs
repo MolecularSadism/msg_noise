@@ -1,25 +1,29 @@
-//! Example: Using NoisePlugin with GlobalRng initialization.
+//! Example: Using NoisePlugin seeded from the global entropy source.
 //!
-//! This derives the noise seed from `msg_rng::GlobalRng`, ensuring
-//! all randomness in the app shares a single reproducible seed.
+//! This derives the noise seed from `bevy_rand`'s global entropy source,
+//! ensuring all randomness in the app shares a single reproducible seed.
 //!
 //! Run with: `cargo run --example with_global_rng`
 
 use bevy::prelude::*;
 use msg_noise::prelude::*;
-use msg_rng::prelude::*;
+use bevy_prng::WyRand;
+use bevy_rand::prelude::EntropyPlugin;
 
 fn main() {
     App::new()
         .add_plugins(MinimalPlugins)
-        .add_plugins(RngPlugin::seeded(12345))
+        .add_plugins(EntropyPlugin::<WyRand>::with_seed(12345u64.to_le_bytes()))
         .add_plugins(NoisePlugin::from_global_rng())
         .add_systems(Update, generate_terrain.run_if(run_once))
         .run();
 }
 
 fn generate_terrain(noise_source: Res<NoiseSource>) {
-    println!("Noise seed (derived from GlobalRng): {}", noise_source.seed());
+    println!(
+        "Noise seed (derived from the global entropy source): {}",
+        noise_source.seed()
+    );
 
     let terrain = noise_source.create(0x5445_5252); // "TERR"
     let caves = noise_source.create(0x4341_5645); // "CAVE"

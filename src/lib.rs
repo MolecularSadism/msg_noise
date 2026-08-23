@@ -2,7 +2,7 @@
 //!
 //! This crate provides deterministic, reproducible noise generation
 //! through a centralized [`NoiseSource`] resource that derives its seed
-//! from [`msg_rng::GlobalRng`].
+//! from a `bevy_rand` global entropy source.
 //!
 //! # Features
 //!
@@ -15,12 +15,13 @@
 //!
 //! ```rust
 //! use bevy::prelude::*;
-//! use msg_rng::prelude::*;
+//! use bevy_prng::WyRand;
+//! use bevy_rand::prelude::EntropyPlugin;
 //! use msg_noise::prelude::*;
 //!
 //! fn main() {
 //!     App::new()
-//!         .add_plugins(RngPlugin::seeded(12345))
+//!         .add_plugins(EntropyPlugin::<WyRand>::with_seed(12345u64.to_le_bytes()))
 //!         .add_plugins(NoisePlugin::from_global_rng())
 //!         .add_systems(Update, generate_terrain);
 //!     // .run() would start the app loop
@@ -33,7 +34,8 @@
 //! ```
 
 use bevy::prelude::*;
-use msg_rng::GlobalRng;
+use bevy_prng::{EntropySource, WyRand};
+use bevy_rand::prelude::{GlobalRng, RngSeed, SeedSource};
 use noise::{NoiseFn, Perlin, ScalePoint};
 use std::fmt;
 
@@ -45,12 +47,13 @@ const DEFAULT_NOISE_SCALE: f64 = 0.008;
 ///
 /// ```rust
 /// use bevy::prelude::*;
-/// use msg_rng::RngPlugin;
+/// use bevy_prng::WyRand;
+/// use bevy_rand::prelude::EntropyPlugin;
 /// use msg_noise::NoisePlugin;
 ///
-/// // Derive from GlobalRng (recommended)
+/// // Derive from the global entropy source (recommended)
 /// App::new()
-///     .add_plugins(RngPlugin::seeded(42))
+///     .add_plugins(EntropyPlugin::<WyRand>::with_seed(42u64.to_le_bytes()))
 ///     .add_plugins(NoisePlugin::from_global_rng());
 ///
 /// // Or use explicit seed
@@ -58,22 +61,44 @@ const DEFAULT_NOISE_SCALE: f64 = 0.008;
 ///     .add_plugins(NoisePlugin::seeded(12345));
 /// ```
 pub struct NoisePlugin {
-    seed: Option<u32>,
+    seed: SeedOrigin,
+}
+
+/// Where a [`NoisePlugin`] takes its seed from.
+enum SeedOrigin {
+    /// A caller-supplied seed.
+    Fixed(u32),
+    /// Derived at build time from the global entropy source of one PRNG algorithm.
+    Global(fn(&mut World) -> Option<u32>),
 }
 
 impl NoisePlugin {
     /// Create a noise plugin with an explicit seed.
     #[must_use]
     pub fn seeded(seed: u32) -> Self {
-        Self { seed: Some(seed) }
+        Self {
+            seed: SeedOrigin::Fixed(seed),
+        }
     }
 
-    /// Create a noise plugin that derives its seed from [`GlobalRng`] at startup.
+    /// Create a noise plugin that derives its seed from the [`WyRand`] global
+    /// entropy source at build time.
     ///
-    /// Requires [`msg_rng::RngPlugin`] to be added before this plugin.
+    /// Requires `bevy_rand`'s `EntropyPlugin::<WyRand>` to be added before this
+    /// plugin. Games running a different algorithm as their global source want
+    /// [`NoisePlugin::from_global_rng_of`] instead.
     #[must_use]
     pub fn from_global_rng() -> Self {
-        Self { seed: None }
+        Self::from_global_rng_of::<WyRand>()
+    }
+
+    /// Create a noise plugin that derives its seed from the global entropy
+    /// source of the given PRNG algorithm.
+    #[must_use]
+    pub fn from_global_rng_of<R: EntropySource>() -> Self {
+        Self {
+            seed: SeedOrigin::Global(global_seed::<R>),
+        }
     }
 }
 
@@ -81,22 +106,26 @@ impl Plugin for NoisePlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<NoiseSource>();
 
-        match self.seed {
-            Some(seed) => {
-                app.insert_resource(NoiseSource::new(seed));
-            }
-            None => {
-                let rng = app
-                    .world()
-                    .get_resource::<GlobalRng>()
-                    .expect("GlobalRng resource not found. Add RngPlugin before NoisePlugin.");
-                let seed = (rng.seed() & u64::from(u32::MAX))
-                    .try_into()
-                    .expect("Bitmasked value should always fit in u32");
-                app.insert_resource(NoiseSource::new(seed));
-            }
-        }
+        let seed = match self.seed {
+            SeedOrigin::Fixed(seed) => seed,
+            SeedOrigin::Global(derive) => derive(app.world_mut()).expect(
+                "no global entropy source found. Add bevy_rand's EntropyPlugin before NoisePlugin.",
+            ),
+        };
+
+        app.insert_resource(NoiseSource::new(seed));
     }
+}
+
+/// Fold the global entropy source's seed down to the `u32` a [`NoiseSource`] takes.
+fn global_seed<R: EntropySource>(world: &mut World) -> Option<u32> {
+    let mut query = world.query_filtered::<&RngSeed<R>, With<GlobalRng>>();
+    let mut seed = query.single(world).ok()?.clone_seed();
+
+    // FNV-1a over the whole seed, so every byte of a wide seed reaches the result.
+    Some(seed.as_mut().iter().fold(0x811c_9dc5, |hash: u32, byte| {
+        (hash ^ u32::from(*byte)).wrapping_mul(0x0100_0193)
+    }))
 }
 
 /// Global noise source resource.

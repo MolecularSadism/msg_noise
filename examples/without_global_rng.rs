@@ -1,6 +1,6 @@
-//! Example: Using NoisePlugin with an explicit seed (no GlobalRng).
+//! Example: Using NoisePlugin with an explicit seed (no global entropy source).
 //!
-//! This uses `NoisePlugin::seeded()` directly, so `msg_rng::RngPlugin`
+//! This uses `NoisePlugin::seeded()` directly, so `bevy_rand::prelude::EntropyPlugin`
 //! is not required.
 //!
 //! Run with: `cargo run --example without_global_rng`
