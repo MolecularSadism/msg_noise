@@ -20,20 +20,22 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-msg_noise = { git = "https://github.com/MolecularSadism/msg_noise", tag = "v0.3.0" }
-msg_rng = { git = "https://github.com/MolecularSadism/msg_rng", tag = "v0.3.0" }
+msg_noise = { git = "https://github.com/MolecularSadism/msg_noise", tag = "v0.4.0" }
+bevy_rand = { version = "0.14", features = ["wyrand"] }
+bevy_prng = { version = "0.14", features = ["wyrand"] }
 ```
 
 ## Quick Start
 
 ```rust
 use bevy::prelude::*;
-use msg_rng::prelude::*;
+use bevy_prng::WyRand;
+use bevy_rand::prelude::EntropyPlugin;
 use msg_noise::prelude::*;
 
 fn main() {
     App::new()
-        .add_plugins(RngPlugin::seeded(12345))
+        .add_plugins(EntropyPlugin::<WyRand>::with_seed(12345u64.to_le_bytes()))
         .add_plugins(NoisePlugin::from_global_rng())
         .add_systems(Update, generate_terrain)
         .run();
@@ -53,8 +55,11 @@ fn generate_terrain(noise_source: Res<NoiseSource>) {
 ### NoisePlugin
 
 ```rust
-// Derive seed from GlobalRng (recommended)
+// Derive seed from the bevy_rand global entropy source (recommended)
 NoisePlugin::from_global_rng()
+
+// Same, for a game whose global source runs a different algorithm
+NoisePlugin::from_global_rng_of::<ChaCha8Rng>()
 
 // Use explicit seed
 NoisePlugin::seeded(12345)
