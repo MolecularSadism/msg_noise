@@ -104,7 +104,7 @@ let fractal_scaled = noise.get_fractal_scaled(x, y, 4, 0.5, 2.0);
 
 | `msg_noise` | Bevy |
 |-------------|------|
-| 0.3         | 0.18 |
+| 0.3-0.4     | 0.18 |
 | 0.2         | 0.17 |
 | 0.1         | 0.16 |
 
