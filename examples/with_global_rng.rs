@@ -6,9 +6,9 @@
 //! Run with: `cargo run --example with_global_rng`
 
 use bevy::prelude::*;
-use msg_noise::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
+use msg_noise::prelude::*;
 
 fn main() {
     App::new()
