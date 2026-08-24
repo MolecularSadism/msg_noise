@@ -1,9 +1,9 @@
 //! Integration tests for `msg_noise` with Bevy 0.18
 
 use bevy::prelude::*;
-use msg_noise::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::EntropyPlugin;
+use msg_noise::prelude::*;
 
 #[test]
 fn plugin_initialization_with_explicit_seed() {
@@ -398,7 +398,10 @@ fn from_global_rng_resource_available_in_startup() {
 
     app.add_systems(Startup, move |noise: Res<NoiseSource>| {
         // Verify the resource exists and has a valid seed
-        assert!(noise.seed() > 0, "Seed should be derived from the global entropy source");
+        assert!(
+            noise.seed() > 0,
+            "Seed should be derived from the global entropy source"
+        );
         flag.store(true, std::sync::atomic::Ordering::SeqCst);
     });
 
@@ -447,10 +450,7 @@ fn from_global_rng_noise_values_match_seeded_equivalent() {
     app_seeded.add_plugins(NoisePlugin::seeded(derived_seed));
 
     let noise_rng = app_rng.world().resource::<NoiseSource>().create(0xBEEF);
-    let noise_seeded = app_seeded
-        .world()
-        .resource::<NoiseSource>()
-        .create(0xBEEF);
+    let noise_seeded = app_seeded.world().resource::<NoiseSource>().create(0xBEEF);
 
     for i in 0..20 {
         let x = f64::from(i);
