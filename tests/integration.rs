@@ -1,4 +1,4 @@
-//! Integration tests for `msg_noise` with Bevy 0.18
+//! Integration tests for `msg_noise` with Bevy 0.19
 
 use bevy::prelude::*;
 use bevy_prng::WyRand;
